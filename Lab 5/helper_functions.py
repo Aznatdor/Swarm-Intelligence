@@ -27,4 +27,4 @@ def create_test_case(num, weight):
 
     costs = np.random.randint(0, weight, size=(num,))
 
-    return weights, costs
+    return sum(weights) // 2, weights, costs
