@@ -48,14 +48,34 @@ class PSO:
     def clip_positon_low(self, position):
         return np.where(position > self.left_bound, self.left_bound + abs(position - self.left_bound), position)
     
+    def plot_regression(self, model, params, ax):
+        left, right = min(model.X_train), max(model.X_train)
+        r = np.linspace(left, right, 100)
+        ax[0].scatter(model.X_train, model.y_train, label="Real data")
+        ax[0].scatter(model.X_train, model.fit_function(model.X_train, params), label="Train")
+        ax[0].plot(r, model.fit_function(r, params))
+        ax[0].set_title("Training set")
+        ax[0].legend()
+
+        left, right = min(model.X_test), max(model.X_test)
+        r = np.linspace(left, right, 100)
+        ax[1].scatter(model.X_test, model.y_test, label="Real data")
+        ax[1].scatter(model.X_test, model.fit_function(model.X_test, params), label="Test")
+        ax[1].plot(r, model.fit_function(r, params))
+        ax[1].set_title("Test set")
+        ax[1].legend()
+    
     def main_loop(self, model, num_iter=20, *, verbose=True, gif_name="PSO"):
         train_conv, test_conv = [], []
 
         # plotting
         n = num_iter // 5
-        fig, _ = plt.subplots()
-        images = []
-        canvas = FigureCanvasAgg(fig)
+        fig_convegence, ax_convergence = plt.subplots()
+        fig_regression, ax_regression = plt.subplots(1, 2, figsize=(10, 5))
+        images_convergence = []
+        images_regression = []
+        canvas_convergence = FigureCanvasAgg(fig_convegence)
+        canvas_regression = FigureCanvasAgg(fig_regression)
 
         objective_function = model.loss
         best_fittnes = np.apply_along_axis(objective_function, axis=1,  arr=self.positions)
@@ -110,29 +130,45 @@ class PSO:
             test_conv.append(test_loss)
 
             if i % 10 == 0:
-                plt.title(f"Particle Swarm Optimization on iteration {i}")
+                ax_convergence.set_title(f"Particle Swarm Optimization on iteration {i}")
 
-                plt.plot(test_conv[-n:], label="Test")
-                plt.plot(train_conv[-n:], label="Train")
-                plt.legend()
+                ax_convergence.plot(test_conv[-n:], label="Test")
+                ax_convergence.plot(train_conv[-n:], label="Train")
+                ax_convergence.legend()
                 # Render the plot as an RGBA buffer
-                canvas.draw()
-                buf = canvas.buffer_rgba()
+                canvas_convergence.draw()
+                buf = canvas_convergence.buffer_rgba()
 
                 # Create a PIL Image from the RGBA buffer
-                image = Image.frombytes('RGBA', canvas.get_width_height(), buf, 'raw', 'RGBA')
-                images.append(image)
-                plt.cla()
+                image = Image.frombytes('RGBA', canvas_convergence.get_width_height(), buf, 'raw', 'RGBA')
+                images_convergence.append(image)
+                ax_convergence.cla()
+
+                self.plot_regression(model, global_minimum_position, ax_regression)
+                canvas_regression.draw()
+                buf = canvas_regression.buffer_rgba()
+
+                image = Image.frombytes('RGBA', canvas_regression.get_width_height(), buf, 'raw', 'RGBA')
+                images_regression.append(image)
+                ax_regression[0].cla()
+                ax_regression[1].cla()
 
             if verbose:
                 print("Ітерація %i\nЗначення %.3f\nТочка %s\n" % (i, global_minimum_value, global_minimum_position))
 
         # something like pause    
-        images.extend([images[-1]] * max(100, num_iter // 25 + 1))
+        images_convergence.extend([images_convergence[-1]] * max(100, num_iter // 25 + 1))
 
-        images[0].save(f'{gif_name}.gif',
-            save_all=True, append_images=images[1:], optimize=False, duration=10, loop=0)
+        images_convergence[0].save(f'{gif_name}_convergence.gif',
+            save_all=True, append_images=images_convergence[1:], optimize=False, duration=10, loop=0)
         
+        # something like pause    
+        images_regression.extend([images_regression[-1]] * max(100, num_iter // 25 + 1))
+
+        images_regression[0].save(f'{gif_name}_regression.gif',
+            save_all=True, append_images=images_regression[1:], optimize=False, duration=10, loop=0)
+        
+        plt.close()
         plt.title(f"Convergence")
 
         plt.plot(range(n, num_iter), test_conv[n:], label="Test")
@@ -150,6 +186,23 @@ class DE:
         self.left_bound, self.right_bound = bounds[:, 0], bounds[:, 1]
         self.population = np.random.rand(self.num_pop, self.num_dim) * (self.right_bound - self.left_bound) + self.left_bound
 
+    def plot_regression(self, model, params, ax):
+        left, right = min(model.X_train), max(model.X_train)
+        r = np.linspace(left, right, 100)
+        ax[0].scatter(model.X_train, model.y_train, label="Real data")
+        ax[0].scatter(model.X_train, model.fit_function(model.X_train, params), label="Train")
+        ax[0].plot(r, model.fit_function(r, params))
+        ax[0].set_title("Training set")
+        ax[0].legend()
+
+        left, right = min(model.X_test), max(model.X_test)
+        r = np.linspace(left, right, 100)
+        ax[1].scatter(model.X_test, model.y_test, label="Real data")
+        ax[1].scatter(model.X_test, model.fit_function(model.X_test, params), label="Test")
+        ax[1].plot(r, model.fit_function(r, params))
+        ax[1].set_title("Test set")
+        ax[1].legend()
+
     def main_loop(self, num_iter, F, P, model, *, verbose=True, gif_name="DE"):
         best_res = np.inf
         best_pos = None
@@ -158,9 +211,13 @@ class DE:
 
         # plotting
         n = num_iter // 5
-        fig, _ = plt.subplots()
-        images = []
-        canvas = FigureCanvasAgg(fig)
+        fig_convergence, ax_convergence = plt.subplots()
+        fig_regression, ax_regression = plt.subplots(1, 2, figsize=(10, 5))
+        images_convergence = []
+        images_regression = []
+        canvas_convergence = FigureCanvasAgg(fig_convergence)
+        canvas_regression = FigureCanvasAgg(fig_regression)
+
 
         for i in range(num_iter):
             for pos in range(self.num_pop):
@@ -189,105 +246,45 @@ class DE:
             test_conv.append(test_loss)
 
             if i % 10 == 0:
-                plt.title(f"Differential Evolution Algorithm on iteration {i}")
+                ax_convergence.set_title(f"Differential Evolution Algorithm on iteration {i}")
 
-                plt.plot(test_conv[-n:], label="Test")
-                plt.plot(train_conv[-n:], label="Train")
-                plt.legend()
+                ax_convergence.plot(test_conv[-n:], label="Test")
+                ax_convergence.plot(train_conv[-n:], label="Train")
+                ax_convergence.legend()
                 # Render the plot as an RGBA buffer
-                canvas.draw()
-                buf = canvas.buffer_rgba()
+                canvas_convergence.draw()
+                buf = canvas_convergence.buffer_rgba()
 
                 # Create a PIL Image from the RGBA buffer
-                image = Image.frombytes('RGBA', canvas.get_width_height(), buf, 'raw', 'RGBA')
-                images.append(image)
-                plt.cla()
+                image = Image.frombytes('RGBA', canvas_convergence.get_width_height(), buf, 'raw', 'RGBA')
+                images_convergence.append(image)
+                ax_convergence.cla()
+
+                self.plot_regression(model, best_pos, ax_regression)
+                canvas_regression.draw()
+                buf = canvas_regression.buffer_rgba()
+
+                image = Image.frombytes('RGBA', canvas_regression.get_width_height(), buf, 'raw', 'RGBA')
+                images_regression.append(image)
+                ax_regression[0].cla()
+                ax_regression[1].cla()
 
             if verbose:
                 print("Ітерація %i\nЗначення %.3f\nТочка %s\n" % (i + 1, best_res, best_pos))
 
         # something like pause    
-        images.extend([images[-1]] * max(100, num_iter // 25 + 1))
+        images_convergence.extend([images_convergence[-1]] * max(100, num_iter // 25 + 1))
 
-        images[0].save(f'{gif_name}.gif',
-            save_all=True, append_images=images[1:], optimize=False, duration=10, loop=0)
+        images_convergence[0].save(f'{gif_name}_convergence.gif',
+            save_all=True, append_images=images_convergence[1:], optimize=False, duration=10, loop=0)
         
-        plt.title(f"Convergence")
-
-        plt.plot(range(n, num_iter), test_conv[n:], label="Test")
-        plt.plot(range(n, num_iter), train_conv[n:], label="Train")
-        plt.legend()
-        plt.show()
-
-        return best_pos
-    
-class DE:
-    def __init__(self, num_pop, num_dim, bounds):
-        self.num_pop, self.num_dim = num_pop, num_dim
-        self.left_bound, self.right_bound = bounds[:, 0], bounds[:, 1]
-        self.population = np.random.rand(self.num_pop, self.num_dim) * (self.right_bound - self.left_bound) + self.left_bound
-
-    def main_loop(self, num_iter, F, P, model, *, verbose=True, gif_name="DE"):
-        best_res = np.inf
-        best_pos = None
-
-        train_conv, test_conv = [], []
-
-        # plotting
-        n = num_iter // 5
-        fig, _ = plt.subplots()
-        images = []
-        canvas = FigureCanvasAgg(fig)
-
-        for i in range(num_iter):
-            for pos in range(self.num_pop):
-                p1, p2, p3 = np.random.choice(self.num_pop, 3)
-
-                while p1 == p2 or p2 == p3 or p1 == p3:
-                    p1, p2, p3 = np.random.choice(self.num_pop, 3)
-
-                x1, x2, x3 = self.population[[p1, p2, p3]]
-                v = x1 + F * (x2 - x3)
-
-                v = np.where(np.random.rand(self.num_dim, ) < P, self.population[pos], v)
-
-                if model.loss(v) < model.loss(self.population[pos]):
-                    self.population[pos] = v.copy()
-
-            fitness = np.apply_along_axis(model.loss, 1, self.population)
-            min_ind = fitness.argmin()
-
-            if fitness[min_ind] < best_res:
-                best_res = fitness[min_ind].copy()
-                best_pos = self.population[min_ind].copy()
-
-            train_loss, test_loss = model.loss(best_pos), model.test_loss(best_pos)
-            train_conv.append(train_loss)
-            test_conv.append(test_loss)
-
-            if i % 10 == 0:
-                plt.title(f"Differential Evolution Algorithm on iteration {i}")
-
-                plt.plot(test_conv[-n:], label="Test")
-                plt.plot(train_conv[-n:], label="Train")
-                plt.legend()
-                # Render the plot as an RGBA buffer
-                canvas.draw()
-                buf = canvas.buffer_rgba()
-
-                # Create a PIL Image from the RGBA buffer
-                image = Image.frombytes('RGBA', canvas.get_width_height(), buf, 'raw', 'RGBA')
-                images.append(image)
-                plt.cla()
-
-            if verbose:
-                print("Ітерація %i\nЗначення %.3f\nТочка %s\n" % (i + 1, best_res, best_pos))
-
         # something like pause    
-        images.extend([images[-1]] * max(100, num_iter // 25 + 1))
+        images_regression.extend([images_regression[-1]] * max(100, num_iter // 25 + 1))
 
-        images[0].save(f'{gif_name}.gif',
-            save_all=True, append_images=images[1:], optimize=False, duration=10, loop=0)
+        images_regression[0].save(f'{gif_name}_regression.gif',
+            save_all=True, append_images=images_regression[1:], optimize=False, duration=10, loop=0)
+        
+        plt.close()
         
         plt.title(f"Convergence")
 
