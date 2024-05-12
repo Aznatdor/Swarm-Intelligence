@@ -85,7 +85,7 @@ class PSO:
             self.velocities = np.where((self.positions < self.left_bound) | (self.best_positions > self.right_bound), -self.velocities, self.velocities)
 
             # Clipping positions
-            self.positions = self.clip_position_higer(self.positions)
+            self.positions = self.clip_position_higher(self.positions)
             self.positions = self.clip_positon_low(self.positions)
 
             # Updating personal record
@@ -153,7 +153,7 @@ class DE:
         self.left_bound, self.right_bound = bounds[:, 0], bounds[:, 1]
         self.population = np.random.rand(self.num_pop, self.num_dim) * (self.right_bound - self.left_bound) + self.left_bound
 
-    def clip_position_higer(self, position):
+    def clip_position_higher(self, position):
         return np.where(position > self.right_bound, self.right_bound - abs(position - self.right_bound), position)
     
     def clip_positon_low(self, position):
@@ -191,7 +191,7 @@ class DE:
 
             
             # Clipping positions
-            self.positions = self.clip_position_higer(self.positions)
+            self.positions = self.clip_position_higher(self.positions)
             self.positions = self.clip_positon_low(self.positions)
 
             fitness = np.apply_along_axis(model.loss, 1, self.population)
