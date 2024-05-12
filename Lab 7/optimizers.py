@@ -191,8 +191,8 @@ class DE:
 
             
             # Clipping positions
-            self.positions = self.clip_position_higher(self.positions)
-            self.positions = self.clip_positon_low(self.positions)
+            self.population = self.clip_position_higher(self.population)
+            self.population = self.clip_positon_low(self.population)
 
             fitness = np.apply_along_axis(model.loss, 1, self.population)
             min_ind = fitness.argmin()
